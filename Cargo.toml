@@ -1,0 +1,12 @@
+[package]
+authors = ["Jens Getreu <getreu@web.de>"]
+name = "sanitize-filename-reader-friendly"
+version = "0.9.2"
+keywords = ["filename", "sanitizer"]
+license = "MIT/Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/getreu/sanitize-filename-reader-friendly"
+homepage = "https://github.com/getreu/sanitize-filename-reader-friendly"
+description = "a filename sanitizer aiming to produce reader friendly filenames"
+
+[dependencies]
