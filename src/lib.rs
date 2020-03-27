@@ -1,4 +1,4 @@
-/// Converts strings in a file-system friendly and human readable from.
+/// Converts strings in a file-system friendly and human readable form.
 ///
 /// * Replace tab with one space.
 /// * Filter control characters.
@@ -18,8 +18,9 @@
 /// ```
 
 pub fn sanitize(s: &str) -> String {
-    // This is used in a closure late.
-    // We period as first character.
+    // This is used in a closure later.
+    // To avoid the period as first character, we pretend that there had been 
+    // a period alread.
     let mut last_c = '.';
 
     // Proceed line by line.
