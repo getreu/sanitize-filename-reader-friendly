@@ -3,6 +3,13 @@
 A filename sanitizer aiming to produce reader friendly filenames,
 while preserving as much information as possible.
 
+[![Cargo](https://img.shields.io/crates/v/sanitize-filename-reader-friendly.svg)](
+https://crates.io/crates/sanitize-filename-reader-friendly)
+[![Documentation](https://docs.rs/sanitize-filename-reader-friendly/badge.svg)](
+https://docs.rs/sanitize-filename-reader-friendly)
+[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](
+https://github.com/getreu/sanitize-filename-reader-friendly)
+
 Unlike Node's [sanitize-filename], this library replaces
 non-file-system-compatible characters with underscore and space. Both are
 trimmed when they appear at the beginning or at the end of a line or when they
