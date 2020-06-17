@@ -65,10 +65,8 @@ pub fn sanitize(s: &str) -> String {
                 // These are considered unsafe in URLs:    <>#%{}|\^~[]`
                 // https://perishablepress.com/stop-using-unsafe-characters-in-urls/
                 .map(|c| {
-                    if c == ':'
-                        || c == '<'
+                    if c ==  '<'
                         || c == '>'
-                        || c == ':'
                         || c == '"'
                         || c == '*'
                         || c == '#'
