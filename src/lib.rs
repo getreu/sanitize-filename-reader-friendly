@@ -4,9 +4,10 @@
 /// * Filter control characters.
 /// * Replace `:\\/|?~,;=` with underscore.
 /// * Replace `<>:"#%{}^[]+\`` with space.
-/// * Filter space after space.
-/// * Filter period after period, space, underscore or beginning of string.
-/// * Filter underscore after period, space or underscore.
+/// * Filter replaced space after replaced space.
+/// * Filter period after period, replaced space, replaced underscore or at the beginning of string.
+/// * Filter replaced underscore after replaced underscore.
+/// * Filter `_.\/,;` after non-alphanumeric.
 /// * Trim whitespace and `_-` at the beginning and the end of the line.
 /// * Filter newline and insert line separator `-`.
 /// * Trim whitespace and `_-` at the beginning and the end of the whole string.
@@ -34,11 +35,11 @@ pub fn sanitize(s: &str) -> String {
                 .filter(|c| !c.is_control())
                 // Replace `:\\/|?~,;=` with underscore.
                 //
-                // Exclude NTFS critical characters:       <>:"\\/|?*
+                // Exclude NTFS critical characters:       `<>:"\\/|?*`
                 // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
-                // Exclude restricted in fat32:            +,;=[]
+                // Exclude restricted in fat32:            `+,;=[]`
                 // https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
-                // These are considered unsafe in URLs:    <>#%{}|\^~[]`
+                // These are considered unsafe in URLs:    `<>#%{}|\^~[]\``
                 // https://perishablepress.com/stop-using-unsafe-characters-in-urls/
                 .map(|c| {
                     if c == ':'
@@ -58,14 +59,14 @@ pub fn sanitize(s: &str) -> String {
                 })
                 // Replace `<>:"#%{}^[]+\`` with space.
                 //
-                // Exclude NTFS critical characters:       <>:"\\/|?*
+                // Exclude NTFS critical characters:       `<>:"\\/|?*`
                 // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
-                // Exclude restricted in fat32:            +,;=[]
+                // Exclude restricted in fat32:            `+,;=[]`
                 // https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
-                // These are considered unsafe in URLs:    <>#%{}|\^~[]`
+                // These are considered unsafe in URLs:    `<>#%{}|\^~[]\``
                 // https://perishablepress.com/stop-using-unsafe-characters-in-urls/
                 .map(|(c_orig, c)| {
-                    if c ==  '<'
+                    if c == '<'
                         || c == '>'
                         || c == '"'
                         || c == '*'
@@ -84,19 +85,26 @@ pub fn sanitize(s: &str) -> String {
                         (c_orig, c)
                     }
                 })
-                // Filter space after space.
-                // Filter period after period, space, underscore or beginning of the string.
-                // Filter underscore after period, space or underscore.
+                // Filter replaced space after replaced space.
+                // Filter period after period, replaced space, replaced underscore or at the beginning of string.
+                // Filter replaced underscore after replaced underscore.
+                // Filter `_.\/,;` after non-alphanumeric.
                 .filter(|&(c_orig, c)| {
                     let discard = (c == ' ' && last_replaced_chr == ' ')
-                        || ((c == '_' || c == '.')
-                            && (last_replaced_chr == '.' || last_replaced_chr == '_' || last_replaced_chr == ' '));
+                        || (c == '_' && last_replaced_chr == '_')
+                        || ((c_orig == '_'
+                            || c_orig == '.'
+                            || c_orig == '\\'
+                            || c_orig == '/'
+                            || c_orig == ','
+                            || c_orig == ';')
+                            && !last_replaced_chr.is_alphanumeric());
                     if !discard {
                         last_replaced_chr = c;
                     };
                     !discard
                 })
-                .map(|(_,c)| c)
+                .map(|(_, c)| c)
                 .collect::<String>()
                 // Trim whitespace and `_-` at the beginning and the end of the line.
                 .trim_matches(|c: char| c.is_whitespace() || c == '_' || c == '-')
@@ -191,6 +199,15 @@ mod tests {
         "./././foobar",
         "|*.what",
         "LPT9.asdf",
+        "author| title",
+        "author | title",
+        "author: title",
+        "auteur : titre",
+        "author, title",
+        "no , enumeration",
+        "Any questions? Or not?",
+        "Des questions ? Ou pas ?",
+        "Hello!",
     ];
 
     // Optimized for reading and keeping and much information as possible.
@@ -239,6 +256,15 @@ mod tests {
         "foobar",
         "what",
         "LPT9.asdf",
+        "author_ title",
+        "author _ title",
+        "author_ title",
+        "auteur _ titre",
+        "author_ title",
+        "no enumeration",
+        "Any questions_ Or not",
+        "Des questions _ Ou pas",
+        "Hello!",
     ];
 
     #[test]
