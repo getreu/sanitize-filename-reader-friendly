@@ -19,9 +19,9 @@
 
 pub fn sanitize(s: &str) -> String {
     // This is used in a closure later.
-    // To avoid the period as first character, we pretend that there had been 
+    // To avoid the period as first character, we pretend that there had been
     // a period alread.
-    let mut last_c = '.';
+    let mut last_replaced_chr = '.';
 
     // Proceed line by line.
     s.lines()
@@ -88,11 +88,11 @@ pub fn sanitize(s: &str) -> String {
                 // Filter period after period, space, underscore or beginning of the string.
                 // Filter underscore after period, space or underscore.
                 .filter(|&c| {
-                    let discard = (c == ' ' && last_c == ' ')
+                    let discard = (c == ' ' && last_replaced_chr == ' ')
                         || ((c == '_' || c == '.')
-                            && (last_c == '.' || last_c == '_' || last_c == ' '));
+                            && (last_replaced_chr == '.' || last_replaced_chr == '_' || last_replaced_chr == ' '));
                     if !discard {
-                        last_c = c;
+                        last_replaced_chr = c;
                     };
                     !discard
                 })
