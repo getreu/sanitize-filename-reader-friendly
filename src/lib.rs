@@ -51,9 +51,9 @@ pub fn sanitize(s: &str) -> String {
                         || c == ';'
                         || c == '='
                     {
-                        '_'
+                        (c, '_')
                     } else {
-                        c
+                        (c, c)
                     }
                 })
                 // Replace `<>:"#%{}^[]+\`` with space.
@@ -64,7 +64,7 @@ pub fn sanitize(s: &str) -> String {
                 // https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
                 // These are considered unsafe in URLs:    <>#%{}|\^~[]`
                 // https://perishablepress.com/stop-using-unsafe-characters-in-urls/
-                .map(|c| {
+                .map(|(c_orig, c)| {
                     if c ==  '<'
                         || c == '>'
                         || c == '"'
@@ -79,15 +79,15 @@ pub fn sanitize(s: &str) -> String {
                         || c == '+'
                         || c == '`'
                     {
-                        ' '
+                        (c_orig, ' ')
                     } else {
-                        c
+                        (c_orig, c)
                     }
                 })
                 // Filter space after space.
                 // Filter period after period, space, underscore or beginning of the string.
                 // Filter underscore after period, space or underscore.
-                .filter(|&c| {
+                .filter(|&(c_orig, c)| {
                     let discard = (c == ' ' && last_replaced_chr == ' ')
                         || ((c == '_' || c == '.')
                             && (last_replaced_chr == '.' || last_replaced_chr == '_' || last_replaced_chr == ' '));
@@ -96,6 +96,7 @@ pub fn sanitize(s: &str) -> String {
                     };
                     !discard
                 })
+                .map(|(_,c)| c)
                 .collect::<String>()
                 // Trim whitespace and `_-` at the beginning and the end of the line.
                 .trim_matches(|c: char| c.is_whitespace() || c == '_' || c == '-')
