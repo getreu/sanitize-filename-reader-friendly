@@ -6,8 +6,8 @@ edition = "2018"
 keywords = ["filename", "sanitizer"]
 license = "MIT/Apache-2.0"
 readme = "README.md"
-repository = "https://github.com/getreu/sanitize-filename-reader-friendly"
-homepage = "https://github.com/getreu/sanitize-filename-reader-friendly"
+repository = "https://gitlab.com/getreu/sanitize-filename-reader-friendly"
+homepage = "https://gitlab.com/getreu/sanitize-filename-reader-friendly"
 description = "a filename sanitizer aiming to produce reader friendly filenames"
 
 [dependencies]
