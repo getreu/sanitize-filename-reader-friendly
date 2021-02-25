@@ -21,7 +21,7 @@
 pub fn sanitize(s: &str) -> String {
     // This is used in a closure later.
     // To avoid the period as first character, we pretend that there had been
-    // a period alread.
+    // a period already.
     let mut last_replaced_chr = '.';
 
     // Proceed line by line.
@@ -33,56 +33,53 @@ pub fn sanitize(s: &str) -> String {
                 .map(|c| if c.is_whitespace() { ' ' } else { c })
                 // Delete control characters.
                 .filter(|c| !c.is_control())
-                // Replace `:\\/|?~,;=` with underscore.
-                //
-                // Exclude NTFS critical characters:       `<>:"\\/|?*`
-                // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
-                // Exclude restricted in fat32:            `+,;=[]`
-                // https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
-                // These are considered unsafe in URLs:    `<>#%{}|\^~[]\``
-                // https://perishablepress.com/stop-using-unsafe-characters-in-urls/
-                .map(|c| {
-                    if c == ':'
-                        || c == '\\'
-                        || c == '/'
-                        || c == '|'
-                        || c == '?'
-                        || c == '~'
-                        || c == ','
-                        || c == ';'
-                        || c == '='
+                .map(|c_orig| {
+                    if
+                    // Replace `:\\/|?~,;=` with underscore.
+                    //
+                    // Exclude NTFS critical characters:       `<>:"\\/|?*`
+                    // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
+                    // Exclude restricted in fat32:            `+,;=[]`
+                    // https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
+                    // These are considered unsafe in URLs:    `<>#%{}|\^~[]\``
+                    // https://perishablepress.com/stop-using-unsafe-characters-in-urls/
+                    c_orig == ':'
+                        || c_orig == '\\'
+                        || c_orig == '/'
+                        || c_orig == '|'
+                        || c_orig == '?'
+                        || c_orig == '~'
+                        || c_orig == ','
+                        || c_orig == ';'
+                        || c_orig == '='
                     {
-                        (c, '_')
-                    } else {
-                        (c, c)
-                    }
-                })
-                // Replace `<>:"#%{}^[]+\`` with space.
-                //
-                // Exclude NTFS critical characters:       `<>:"\\/|?*`
-                // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
-                // Exclude restricted in fat32:            `+,;=[]`
-                // https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
-                // These are considered unsafe in URLs:    `<>#%{}|\^~[]\``
-                // https://perishablepress.com/stop-using-unsafe-characters-in-urls/
-                .map(|(c_orig, c)| {
-                    if c == '<'
-                        || c == '>'
-                        || c == '"'
-                        || c == '*'
-                        || c == '#'
-                        || c == '%'
-                        || c == '{'
-                        || c == '}'
-                        || c == '^'
-                        || c == '['
-                        || c == ']'
-                        || c == '+'
-                        || c == '`'
+                        (c_orig, '_')
+                    } else if
+                    // Replace `<>:"#%{}^[]+\`` with space.
+                    //
+                    // Exclude NTFS critical characters:       `<>:"\\/|?*`
+                    // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
+                    // Exclude restricted in fat32:            `+,;=[]`
+                    // https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
+                    // These are considered unsafe in URLs:    `<>#%{}|\^~[]\``
+                    // https://perishablepress.com/stop-using-unsafe-characters-in-urls/
+                    c_orig == '<'
+                        || c_orig == '>'
+                        || c_orig == '"'
+                        || c_orig == '*'
+                        || c_orig == '#'
+                        || c_orig == '%'
+                        || c_orig == '{'
+                        || c_orig == '}'
+                        || c_orig == '^'
+                        || c_orig == '['
+                        || c_orig == ']'
+                        || c_orig == '+'
+                        || c_orig == '`'
                     {
                         (c_orig, ' ')
                     } else {
-                        (c_orig, c)
+                        (c_orig, c_orig)
                     }
                 })
                 // Filter replaced space after replaced space.
