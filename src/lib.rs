@@ -1,9 +1,9 @@
-/// Converts strings in a file-system friendly and human readable form.
+/// Converts strings in a file system friendly and human readable form.
 ///
 /// * Replace tab with one space.
 /// * Filter control characters.
-/// * Replace `:\\/|?~,;=` with underscore.
-/// * Replace `<>:"#%{}^[]+\`` with space.
+/// * Replace `:\\/|?~` with underscore.
+/// * Replace `<>:"#%{}^\`` with space.
 /// * Filter replaced space after replaced space.
 /// * Filter period after period, replaced space, replaced underscore or at the beginning of string.
 /// * Filter replaced underscore after replaced underscore.
@@ -17,6 +17,13 @@
 /// let output = sanitize("Read: http://blog.getreu.net/projects/tp-note/");
 /// assert_eq!(output, "Read_ http_blog.getreu.net_projects_tp-note");
 /// ```
+/// The output string's length is guaranteed to be shorter or equal than the input
+/// string's length.
+///
+/// Change log:
+///
+/// * Version 2.0.0: drop FAT32 restrictions and allow: `+,;=[]` 
+///                  (the output is stays eFAT compatible).
 
 pub fn sanitize(s: &str) -> String {
     // This is used in a closure later.
@@ -39,7 +46,8 @@ pub fn sanitize(s: &str) -> String {
                     //
                     // Exclude NTFS critical characters:       `<>:"\\/|?*`
                     // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
-                    // Exclude restricted in fat32:            `+,;=[]`
+                    // New in version 2.0.0:
+                    // Do **not** exclude restricted in FAT32:    `+,;=[]`
                     // https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
                     // These are considered unsafe in URLs:    `<>#%{}|\^~[]\``
                     // https://perishablepress.com/stop-using-unsafe-characters-in-urls/
@@ -49,9 +57,6 @@ pub fn sanitize(s: &str) -> String {
                         || c_orig == '|'
                         || c_orig == '?'
                         || c_orig == '~'
-                        || c_orig == ','
-                        || c_orig == ';'
-                        || c_orig == '='
                     {
                         (c_orig, '_')
                     } else if
@@ -72,9 +77,6 @@ pub fn sanitize(s: &str) -> String {
                         || c_orig == '{'
                         || c_orig == '}'
                         || c_orig == '^'
-                        || c_orig == '['
-                        || c_orig == ']'
-                        || c_orig == '+'
                         || c_orig == '`'
                     {
                         (c_orig, ' ')
@@ -129,9 +131,9 @@ mod tests {
         // test filter 2
         assert_eq!(sanitize("abc\u{0019}efg"), "abcefg".to_string());
         // test filter 3
-        assert_eq!(sanitize("abc:\\/|?~,;=efg"), "abc_efg".to_string());
+        assert_eq!(sanitize("abc:\\/|?~,;=efg"), "abc_=efg".to_string());
         // test filter4
-        assert_eq!(sanitize("abc<>\"*<>#%{}^[]+[]`efg"), "abc efg".to_string());
+        assert_eq!(sanitize("abc<>\"*<>#%{}^[]+[]`efg"), "abc []+[] efg".to_string());
         // test trim before and after newline
         assert_eq!(
             sanitize("-_ \tabc \t >_-\n   efg \t_-"),
@@ -160,6 +162,8 @@ mod tests {
         "hello\nworld",
         "semi;colon",
         ";leading-semi",
+        "com,ma",
+        "equals=",
         "slash\\",
         "slash/",
         "col:on",
@@ -215,8 +219,10 @@ mod tests {
         "résumé",
         "helloworld",
         "hello-world",
-        "semi_colon",
+        "semi;colon",
         "leading-semi",
+        "com,ma",
+        "equals=",
         "slash",
         "slash",
         "col_on",
@@ -226,7 +232,7 @@ mod tests {
         "singlequote'",
         "brack e ts",
         "p_pes",
-        "plus",
+        "plus+",
         "'five and six seven'",
         "space at front",
         "space at end",
@@ -257,7 +263,7 @@ mod tests {
         "author _ title",
         "author_ title",
         "auteur _ titre",
-        "author_ title",
+        "author, title",
         "no enumeration",
         "Any questions_ Or not",
         "Des questions _ Ou pas",
