@@ -1,13 +1,13 @@
 [package]
 authors = ["Jens Getreu <getreu@web.de>"]
 name = "sanitize-filename-reader-friendly"
-version = "1.1.1"
+version = "2.0.0"
 edition = "2018"
 keywords = ["filename", "sanitizer"]
 license = "MIT/Apache-2.0"
 readme = "README.md"
 repository = "https://gitlab.com/getreu/sanitize-filename-reader-friendly"
 homepage = "https://gitlab.com/getreu/sanitize-filename-reader-friendly"
-description = "a filename sanitizer aiming to produce reader friendly filenames"
+description = "A filename sanitizer aiming to produce reader friendly filenames."
 
 [dependencies]

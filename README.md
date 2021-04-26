@@ -37,3 +37,7 @@ This library comes with a simple command-line application. Usage:
 cargo install sanitize-filename-reader-friendly
 sanitize-filename <input.txt >output.txt
 ```
+
+
+Version 1: 
+
