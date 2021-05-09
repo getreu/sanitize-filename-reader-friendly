@@ -7,10 +7,10 @@
 /// * Filter replaced space after replaced space.
 /// * Filter period after period, replaced space, replaced underscore or at the beginning of string.
 /// * Filter replaced underscore after replaced underscore.
-/// * Filter `_.\/,;` after non-alphanumeric.
+/// * Filter `_.\/,;` after whitespace.
 /// * Trim whitespace and `_-` at the beginning and the end of the line.
 /// * Filter newline and insert line separator `-`.
-/// * Trim whitespace and `_-` at the beginning and the end of the whole string.
+/// * Trim whitespace and `_-.,;` at the beginning and the end of the whole string.
 ///
 /// ```
 /// use sanitize_filename_reader_friendly::sanitize;
@@ -22,7 +22,7 @@
 ///
 /// Change log:
 ///
-/// * Version 2.0.0: drop FAT32 restrictions and allow: `+,;=[]` 
+/// * Version 2.0.0: drop FAT32 restrictions and allow: `+,;=[]`
 ///                  (the output is stays eFAT compatible).
 
 pub fn sanitize(s: &str) -> String {
@@ -87,7 +87,7 @@ pub fn sanitize(s: &str) -> String {
                 // Filter replaced space after replaced space.
                 // Filter period after period, replaced space, replaced underscore or at the beginning of string.
                 // Filter replaced underscore after replaced underscore.
-                // Filter `_.\/,;` after non-alphanumeric.
+                // Filter `_.\/,;` after whitespace.
                 .filter(|&(c_orig, c)| {
                     let discard = (c == ' ' && last_replaced_chr == ' ')
                         || (c == '_' && last_replaced_chr == '_')
@@ -97,7 +97,7 @@ pub fn sanitize(s: &str) -> String {
                             || c_orig == '/'
                             || c_orig == ','
                             || c_orig == ';')
-                            && !last_replaced_chr.is_alphanumeric());
+                            && last_replaced_chr.is_whitespace());
                     if !discard {
                         last_replaced_chr = c;
                     };
@@ -106,7 +106,9 @@ pub fn sanitize(s: &str) -> String {
                 .map(|(_, c)| c)
                 .collect::<String>()
                 // Trim whitespace and `_-` at the beginning and the end of the line.
-                .trim_matches(|c: char| c.is_whitespace() || c == '_' || c == '-')
+                .trim_matches(|c: char| {
+                    c.is_whitespace() || c == '_' || c == '-' || c == '.' || c == ',' || c == ';'
+                })
                 .to_string();
             // Filter newline and insert line speparator `-`.
             s.push('-');
@@ -114,7 +116,9 @@ pub fn sanitize(s: &str) -> String {
         })
         .collect::<String>()
         // Trim whitespace and `_-` at the beginning and the end of the whole string.
-        .trim_matches(|c: char| c.is_whitespace() || c == '_' || c == '-')
+        .trim_matches(|c: char| {
+            c.is_whitespace() || c == '_' || c == '-' || c == '.' || c == ',' || c == ';'
+        })
         .to_string()
 }
 // TODO
@@ -131,9 +135,12 @@ mod tests {
         // test filter 2
         assert_eq!(sanitize("abc\u{0019}efg"), "abcefg".to_string());
         // test filter 3
-        assert_eq!(sanitize("abc:\\/|?~,;=efg"), "abc_=efg".to_string());
+        assert_eq!(sanitize("abc:\\/|?~=efg"), "abc_=efg".to_string());
         // test filter4
-        assert_eq!(sanitize("abc<>\"*<>#%{}^[]+[]`efg"), "abc []+[] efg".to_string());
+        assert_eq!(
+            sanitize("abc<>\"*<>#%{}^[]+[]`efg"),
+            "abc []+[] efg".to_string()
+        );
         // test trim before and after newline
         assert_eq!(
             sanitize("-_ \tabc \t >_-\n   efg \t_-"),
@@ -209,6 +216,9 @@ mod tests {
         "Any questions? Or not?",
         "Des questions ? Ou pas ?",
         "Hello!",
+        "filename(1).ext",
+        "1,23",
+        "1.23",
     ];
 
     // Optimized for reading and keeping and much information as possible.
@@ -237,7 +247,7 @@ mod tests {
         "space at front",
         "space at end",
         "period",
-        "period.",
+        "period",
         "relative_path_to_some_dir",
         "abs_path_to_some_dir",
         "notssh_authorized_keys",
@@ -268,6 +278,9 @@ mod tests {
         "Any questions_ Or not",
         "Des questions _ Ou pas",
         "Hello!",
+        "filename(1).ext",
+        "1,23",
+        "1.23",
     ];
 
     #[test]
