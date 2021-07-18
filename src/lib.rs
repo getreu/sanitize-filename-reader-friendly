@@ -8,7 +8,7 @@
 /// * Filter period after period, replaced space, replaced underscore or at the beginning of string.
 /// * Filter replaced underscore after replaced underscore.
 /// * Filter `_.\/,;` after whitespace.
-/// * Trim whitespace and `_-` at the beginning and the end of the line.
+/// * Trim whitespace and `_-.,;` at the beginning and the end of the line.
 /// * Filter newline and insert line separator `-`.
 /// * Trim whitespace and `_-.,;` at the beginning and the end of the whole string.
 ///
@@ -64,7 +64,7 @@ pub fn sanitize(s: &str) -> String {
                     //
                     // Exclude NTFS critical characters:       `<>:"\\/|?*`
                     // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
-                    // Exclude restricted in fat32:            `+,;=[]`
+                    // Do **not** exclude restricted in fat32: `+,;=[]`
                     // https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
                     // These are considered unsafe in URLs:    `<>#%{}|\^~[]\``
                     // https://perishablepress.com/stop-using-unsafe-characters-in-urls/
@@ -105,17 +105,17 @@ pub fn sanitize(s: &str) -> String {
                 })
                 .map(|(_, c)| c)
                 .collect::<String>()
-                // Trim whitespace and `_-` at the beginning and the end of the line.
+                // Trim whitespace and `_-.,;` at the beginning and the end of the line.
                 .trim_matches(|c: char| {
                     c.is_whitespace() || c == '_' || c == '-' || c == '.' || c == ',' || c == ';'
                 })
                 .to_string();
-            // Filter newline and insert line speparator `-`.
+            // Filter newline and insert line separator `-`.
             s.push('-');
             s
         })
         .collect::<String>()
-        // Trim whitespace and `_-` at the beginning and the end of the whole string.
+        // Trim whitespace and `_-.,;` at the beginning and the end of the whole string.
         .trim_matches(|c: char| {
             c.is_whitespace() || c == '_' || c == '-' || c == '.' || c == ',' || c == ';'
         })
