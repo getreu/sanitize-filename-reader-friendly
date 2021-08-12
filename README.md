@@ -13,8 +13,9 @@ https://gitlab.com/getreu/sanitize-filename-reader-friendly)
 Unlike Node's [sanitize-filename], this library replaces
 non-file-system-compatible characters with underscore and space. Both are
 trimmed when they appear at the beginning or at the end of a line or when they
-repeat within. Unprintable punctuation marks are replaced by underscores, other
-unprintable characters by spaces.  Newlines are replaced by dashes.
+repeat within. Non-printable punctuation marks are replaced by underscores,
+other non-printable characters by spaces, except the non-printable space
+`U+200b` which is filtered out.  Newlines are replaced by dashes.
 
 [sanitize-filename]: https://www.npmjs.com/package/sanitize-filename
 
@@ -38,6 +39,4 @@ cargo install sanitize-filename-reader-friendly
 sanitize-filename <input.txt >output.txt
 ```
 
-
-Version 1: 
 

@@ -8,6 +8,7 @@
 /// * Filter period after period, replaced space, replaced underscore or at the beginning of string.
 /// * Filter replaced underscore after replaced underscore.
 /// * Filter `_.\/,;` after whitespace.
+/// * Filter non-printing space `U+200b`.
 /// * Trim whitespace and `_-.,;` at the beginning and the end of the line.
 /// * Filter newline and insert line separator `-`.
 /// * Trim whitespace and `_-.,;` at the beginning and the end of the whole string.
@@ -41,7 +42,6 @@ pub fn sanitize(s: &str) -> String {
                 // Delete control characters.
                 .filter(|c| !c.is_control())
                 .map(|c_orig| {
-                    if
                     // Replace `:\\/|?~,;=` with underscore.
                     //
                     // Exclude NTFS critical characters:       `<>:"\\/|?*`
@@ -51,7 +51,7 @@ pub fn sanitize(s: &str) -> String {
                     // https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
                     // These are considered unsafe in URLs:    `<>#%{}|\^~[]\``
                     // https://perishablepress.com/stop-using-unsafe-characters-in-urls/
-                    c_orig == ':'
+                    if c_orig == ':'
                         || c_orig == '\\'
                         || c_orig == '/'
                         || c_orig == '|'
@@ -88,6 +88,7 @@ pub fn sanitize(s: &str) -> String {
                 // Filter period after period, replaced space, replaced underscore or at the beginning of string.
                 // Filter replaced underscore after replaced underscore.
                 // Filter `_.\/,;` after whitespace.
+                // Filter non-printing space `U+200b`.
                 .filter(|&(c_orig, c)| {
                     let discard = (c == ' ' && last_replaced_chr == ' ')
                         || (c == '_' && last_replaced_chr == '_')
@@ -97,7 +98,8 @@ pub fn sanitize(s: &str) -> String {
                             || c_orig == '/'
                             || c_orig == ','
                             || c_orig == ';')
-                            && last_replaced_chr.is_whitespace());
+                            && last_replaced_chr.is_whitespace())
+                        || c_orig == '\u{200b}';
                     if !discard {
                         last_replaced_chr = c;
                     };
@@ -219,6 +221,7 @@ mod tests {
         "filename(1).ext",
         "1,23",
         "1.23",
+        "foo\u{200b}bar",
     ];
 
     // Optimized for reading and keeping and much information as possible.
@@ -281,6 +284,7 @@ mod tests {
         "filename(1).ext",
         "1,23",
         "1.23",
+        "foobar",
     ];
 
     #[test]
