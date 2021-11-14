@@ -30,7 +30,7 @@ pub fn sanitize(s: &str) -> String {
     // This is used in a closure later.
     // To avoid the period as first character, we pretend that there had been
     // a period already.
-    let mut last_replaced_chr = '.';
+    let mut last_processed_chr = '.';
 
     // Proceed line by line.
     s.lines()
@@ -90,18 +90,18 @@ pub fn sanitize(s: &str) -> String {
                 // Filter `_.\/,;` after whitespace.
                 // Filter non-printing space `U+200b`.
                 .filter(|&(c_orig, c)| {
-                    let discard = (c == ' ' && last_replaced_chr == ' ')
-                        || (c == '_' && last_replaced_chr == '_')
+                    let discard = (c == ' ' && last_processed_chr == ' ')
+                        || (c == '_' && last_processed_chr == '_')
                         || ((c_orig == '_'
                             || c_orig == '.'
                             || c_orig == '\\'
                             || c_orig == '/'
                             || c_orig == ','
                             || c_orig == ';')
-                            && last_replaced_chr.is_whitespace())
+                            && last_processed_chr.is_whitespace())
                         || c_orig == '\u{200b}';
                     if !discard {
-                        last_replaced_chr = c;
+                        last_processed_chr = c;
                     };
                     !discard
                 })
