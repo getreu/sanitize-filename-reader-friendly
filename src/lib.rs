@@ -1,36 +1,87 @@
-/// Converts strings in a file system friendly and human readable form.
-///
-/// * Replace tab with one space.
-/// * Filter control characters.
-/// * Replace `:\\/|?~` with underscore.
-/// * Replace `<>:"#%{}^\`` with space.
-/// * Filter replaced space after replaced space.
-/// * Filter period after period, replaced space, replaced underscore or at the beginning of string.
-/// * Filter replaced underscore after replaced underscore.
-/// * Filter `_.\/,;` after whitespace.
-/// * Filter non-printing space `U+200b`.
-/// * Trim whitespace and `_-.,;` at the beginning and the end of the line.
-/// * Filter newline and insert line separator `-`.
-/// * Trim whitespace and `_-.,;` at the beginning and the end of the whole string.
-///
-/// ```
-/// use sanitize_filename_reader_friendly::sanitize;
-/// let output = sanitize("Read: http://blog.getreu.net/projects/tp-note/");
-/// assert_eq!(output, "Read_ http_blog.getreu.net_projects_tp-note");
-/// ```
-/// The output string's length is guaranteed to be shorter or equal than the input
-/// string's length.
-///
-/// Change log:
-///
-/// * Version 2.0.0: drop FAT32 restrictions and allow: `+,;=[]`
-///                  (the output is stays eFAT compatible).
+//! Converts strings in a file system friendly and human readable form.
+//!
+//! The algorithm replaces or deletes characters from the input stream using
+//! various filters that are applied in the following sequential order:
+//!
+//! 1. Replace all whitespace with space.
+//! 2. Filter all control characters.
+//! 3. `REPLACE_ORIG_WITH_UNDERSCORE`
+//! 4. `REPLACE_ORIG_WITH_SPACE`
+//! 5. `FILTER_PROCESSED_AFTER_LAST_PROCESSED_WAS_SPACE`
+//! 6. `FILTER_PROCESSED_AFTER_LAST_PROCESSED_WAS_UNDERSCORE`
+//! 7. `FILTER_ORIG_AFTER_LAST_PROCESSED_WAS_WHITESPACE`
+//! 8. `FILTER_ORIG_NON_PRINTING_CHARS`
+//! 9. `TRIM_LINE`
+//! 10. `INSERT_LINE_SEPARATOR`
+//! 11. `TRIM_END_LINES`
+//!
+//! For details see the definition and documentation of the above (private) constants.
+//!
+//! # Rationale
+//!
+//! Exclude NTFS critical characters:       `<>:"\/|?*` \
+//! <https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx>
+//!
+//! These are considered unsafe in URLs:    `<>#%{}|\^~[]` ` \
+//! <https://perishablepress.com/stop-using-unsafe-characters-in-urls/>
+//!
+//! New in version 2.0.0:
+//! Do **not** exclude restricted in FAT32:    `+,;=[]`  \
+//! <https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words>
+//!
+//! ```
+//! use sanitize_filename_reader_friendly::sanitize;
+//! let output = sanitize("Read: http://blog.getreu.net/projects/tp-note/");
+//! assert_eq!(output, "Read_ http_blog.getreu.net_projects_tp-note");
+//! ```
+//! The output string's length is guaranteed to be shorter or equal than the input
+//! string's length.
 
+/// Start value for the algorithm. We pretend the last was just a regular letter
+/// to which no `LAST_PROCESSED_WAS` rule applies.
+const LAST_PROCESSED_START_CHAR: char = 'A';
+
+/// Replace the set of quoted characters with underscore:
+///
+/// * Replace any whitespace by a space.
+/// * Filter any control character.
+/// * Replace any of the quoted characters with underscore.
+const REPLACE_ORIG_WITH_UNDERSCORE: &str = r#":\/|?~"#;
+
+/// * Replace any of the quoted characters with space.
+const REPLACE_ORIG_WITH_SPACE: &str = "<>\"*#%{}^`";
+
+/// * Filter the resulting character if it is in the quoted set and the last
+///   processed character was a space.
+const FILTER_PROCESSED_AFTER_LAST_PROCESSED_WAS_SPACE: &str = " ";
+
+/// * Filter the resulting character if it is in the quoted set and the last
+///   processed character was an underscore.
+const FILTER_PROCESSED_AFTER_LAST_PROCESSED_WAS_UNDERSCORE: &str = "_";
+
+/// * Filter if the current character is in the quoted set and the last
+///   processed character was a whitespace. Ignore all former replacements of
+///   the current character.
+const FILTER_ORIG_AFTER_LAST_PROCESSED_WAS_WHITESPACE: &str = "_.\\/,;";
+
+/// * Filter if the * current character is in the set of the quoted non printing
+///   characters. Ignore all former replacements of the current character.
+///
+/// End of character loop.
+const FILTER_ORIG_NON_PRINTING_CHARS: &str = "\u{200b}";
+
+/// Group characters into lines (separated by newlines) and trim both sides of
+/// all lines by the set of the quoted characters. In addition to the listed
+/// characters whitespace is trimmed too.
+const TRIM_LINE: &str = "_-.,;";
+
+/// Insert the character below between lines.
+const INSERT_LINE_SEPARATOR: char = '-';
+
+/// Converts strings in a file system friendly and human readable form.
 pub fn sanitize(s: &str) -> String {
     // This is used in a closure later.
-    // To avoid the period as first character, we pretend that there had been
-    // a period already.
-    let mut last_processed_chr = '.';
+    let mut last_processed_chr = LAST_PROCESSED_START_CHAR;
 
     // Proceed line by line.
     s.lines()
@@ -43,63 +94,28 @@ pub fn sanitize(s: &str) -> String {
                 .filter(|c| !c.is_control())
                 .map(|c_orig| {
                     // Replace `:\\/|?~,;=` with underscore.
-                    //
-                    // Exclude NTFS critical characters:       `<>:"\\/|?*`
-                    // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
-                    // New in version 2.0.0:
-                    // Do **not** exclude restricted in FAT32:    `+,;=[]`
-                    // https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
-                    // These are considered unsafe in URLs:    `<>#%{}|\^~[]\``
-                    // https://perishablepress.com/stop-using-unsafe-characters-in-urls/
-                    if c_orig == ':'
-                        || c_orig == '\\'
-                        || c_orig == '/'
-                        || c_orig == '|'
-                        || c_orig == '?'
-                        || c_orig == '~'
-                    {
+                    if REPLACE_ORIG_WITH_UNDERSCORE.find(c_orig).is_some() {
                         (c_orig, '_')
-                    } else if
-                    // Replace `<>:"#%{}^[]+\`` with space.
-                    //
-                    // Exclude NTFS critical characters:       `<>:"\\/|?*`
-                    // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
-                    // Do **not** exclude restricted in fat32: `+,;=[]`
-                    // https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
-                    // These are considered unsafe in URLs:    `<>#%{}|\^~[]\``
-                    // https://perishablepress.com/stop-using-unsafe-characters-in-urls/
-                    c_orig == '<'
-                        || c_orig == '>'
-                        || c_orig == '"'
-                        || c_orig == '*'
-                        || c_orig == '#'
-                        || c_orig == '%'
-                        || c_orig == '{'
-                        || c_orig == '}'
-                        || c_orig == '^'
-                        || c_orig == '`'
-                    {
+                    } else if REPLACE_ORIG_WITH_SPACE.find(c_orig).is_some() {
                         (c_orig, ' ')
                     } else {
                         (c_orig, c_orig)
                     }
                 })
-                // Filter replaced space after replaced space.
-                // Filter period after period, replaced space, replaced underscore or at the beginning of string.
-                // Filter replaced underscore after replaced underscore.
-                // Filter `_.\/,;` after whitespace.
-                // Filter non-printing space `U+200b`.
                 .filter(|&(c_orig, c)| {
-                    let discard = (c == ' ' && last_processed_chr == ' ')
-                        || (c == '_' && last_processed_chr == '_')
-                        || ((c_orig == '_'
-                            || c_orig == '.'
-                            || c_orig == '\\'
-                            || c_orig == '/'
-                            || c_orig == ','
-                            || c_orig == ';')
+                    let discard = (FILTER_PROCESSED_AFTER_LAST_PROCESSED_WAS_SPACE
+                        .find(c)
+                        .is_some()
+                        && last_processed_chr == ' ')
+                        || (FILTER_PROCESSED_AFTER_LAST_PROCESSED_WAS_UNDERSCORE
+                            .find(c)
+                            .is_some()
+                            && last_processed_chr == '_')
+                        || (FILTER_ORIG_AFTER_LAST_PROCESSED_WAS_WHITESPACE
+                            .find(c_orig)
+                            .is_some()
                             && last_processed_chr.is_whitespace())
-                        || c_orig == '\u{200b}';
+                        || FILTER_ORIG_NON_PRINTING_CHARS.find(c_orig).is_some();
                     if !discard {
                         last_processed_chr = c;
                     };
@@ -108,19 +124,15 @@ pub fn sanitize(s: &str) -> String {
                 .map(|(_, c)| c)
                 .collect::<String>()
                 // Trim whitespace and `_-.,;` at the beginning and the end of the line.
-                .trim_matches(|c: char| {
-                    c.is_whitespace() || c == '_' || c == '-' || c == '.' || c == ',' || c == ';'
-                })
+                .trim_matches(|c: char| c.is_whitespace() || TRIM_LINE.find(c).is_some())
                 .to_string();
             // Filter newline and insert line separator `-`.
-            s.push('-');
+            s.push(INSERT_LINE_SEPARATOR);
             s
         })
         .collect::<String>()
         // Trim whitespace and `_-.,;` at the beginning and the end of the whole string.
-        .trim_matches(|c: char| {
-            c.is_whitespace() || c == '_' || c == '-' || c == '.' || c == ',' || c == ';'
-        })
+        .trim_matches(|c: char| c.is_whitespace() || TRIM_LINE.find(c).is_some())
         .to_string()
 }
 // TODO
@@ -132,29 +144,29 @@ mod tests {
     use super::sanitize;
     #[test]
     fn test_sanitize() {
-        // test filter 1
+        // Test filter tabs.
         assert_eq!(sanitize("\tabc\tefg\t"), "abc efg".to_string());
-        // test filter 2
+        // Test filter control characters.
         assert_eq!(sanitize("abc\u{0019}efg"), "abcefg".to_string());
-        // test filter 3
+        // Test filter special characters, replace with _.
         assert_eq!(sanitize("abc:\\/|?~=efg"), "abc_=efg".to_string());
-        // test filter4
+        // Test filter special characters, replace with _.
         assert_eq!(
             sanitize("abc<>\"*<>#%{}^[]+[]`efg"),
             "abc []+[] efg".to_string()
         );
-        // test trim before and after newline
+        // Test trim before and after newline.
         assert_eq!(
             sanitize("-_ \tabc \t >_-\n   efg \t_-"),
             "abc-efg".to_string()
         );
-        // test replace Unix newline
+        // Test replace Unix newline.
         assert_eq!(sanitize("abc\nefg"), "abc-efg".to_string());
-        // test replace Window newline
+        // Test replace Windows newline.
         assert_eq!(sanitize("abc\r\nefg"), "abc-efg".to_string());
-        // test double '_' or ' '
+        // Test double '_' or ' '.
         assert_eq!(sanitize("abc_ __  efg __hij"), "abc_ efg hij".to_string());
-        // test link
+        // Test hyperlink.
         assert_eq!(
             sanitize("https://blog.getreu.net/projects/"),
             "https_blog.getreu.net_projects".to_string()
@@ -169,6 +181,7 @@ mod tests {
         "résumé",
         "hello\u{0000}world",
         "hello\nworld",
+        ";-_hello.,\n,.world_-;",
         "semi;colon",
         ";leading-semi",
         "com,ma",
@@ -231,6 +244,7 @@ mod tests {
         "the quick brown fox jumped over the lazy dog",
         "résumé",
         "helloworld",
+        "hello-world",
         "hello-world",
         "semi;colon",
         "leading-semi",
