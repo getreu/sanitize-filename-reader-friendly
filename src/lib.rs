@@ -78,6 +78,9 @@ const TRIM_LINE: &str = "_-.,;";
 /// Insert the character below between lines.
 const INSERT_LINE_SEPARATOR: char = '-';
 
+/// Remove the final `INSERT_LINE_SEPARATOR`.
+const TRIM_END_LINES: char = INSERT_LINE_SEPARATOR;
+
 /// Converts strings in a file system friendly and human readable form.
 pub fn sanitize(s: &str) -> String {
     // This is used in a closure later.
@@ -131,8 +134,8 @@ pub fn sanitize(s: &str) -> String {
             s
         })
         .collect::<String>()
-        // Trim whitespace and `_-.,;` at the beginning and the end of the whole string.
-        .trim_matches(|c: char| c.is_whitespace() || TRIM_LINE.find(c).is_some())
+        // Trim the last `LINE_SEPARATOR` just added.
+        .trim_end_matches(TRIM_END_LINES)
         .to_string()
 }
 // TODO
