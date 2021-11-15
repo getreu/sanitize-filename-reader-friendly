@@ -37,6 +37,8 @@
 //! The output string's length is guaranteed to be shorter or equal than the input
 //! string's length.
 
+use const_format::concatcp;
+
 /// Start value for the algorithm. We pretend the last was just a regular letter
 /// to which no `LAST_PROCESSED_WAS` rule applies.
 const LAST_PROCESSED_START_CHAR: char = 'A';
@@ -81,6 +83,29 @@ const INSERT_LINE_SEPARATOR: char = '-';
 
 /// Remove the final `INSERT_LINE_SEPARATOR`.
 const TRIM_END_LINES: char = INSERT_LINE_SEPARATOR;
+
+#[allow(dead_code)]
+/// A set of characters that is always replaced or filtered and will never appear in the output
+/// stream.
+/// Please note that additionally to the above : all `is_withespace()` characters are always
+/// replaced by space and all `is_control()` characters are always filtered.
+pub const ALWAYS_REPLACED_OR_FILTERED_CHARS: &str =
+    concatcp!(REPLACE_ORIG_WITH_UNDERSCORE, REPLACE_ORIG_WITH_SPACE);
+
+#[allow(dead_code)]
+/// An unordered list of all characters that are potentially replaced under certain conditions.
+/// Please note that additionally to the above : all `is_withespace()` characters are always
+/// replaced by space and all `is_control()` characters are always filtered.
+pub const POTENTIALLY_REPLACED_CHARS: &str = concatcp!(
+    REPLACE_ORIG_WITH_UNDERSCORE,
+    REPLACE_ORIG_WITH_SPACE,
+    FILTER_PROCESSED_AFTER_LAST_PROCESSED_WAS_SPACE,
+    FILTER_PROCESSED_AFTER_LAST_PROCESSED_WAS_UNDERSCORE,
+    FILTER_ORIG_AFTER_LAST_PROCESSED_WAS_WHITESPACE,
+    FILTER_ORIG_NON_PRINTING_CHARS,
+    TRIM_LINE,
+    TRIM_END_LINES
+);
 
 /// Converts strings in a file system friendly and human readable form.
 pub fn sanitize(s: &str) -> String {
