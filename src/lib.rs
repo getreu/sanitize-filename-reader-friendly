@@ -68,7 +68,8 @@ const FILTER_ORIG_AFTER_LAST_PROCESSED_WAS_WHITESPACE: &str = "_.\\/,;";
 ///   characters. Ignore all former replacements of the current character.
 ///
 /// End of character loop.
-const FILTER_ORIG_NON_PRINTING_CHARS: &str = "\u{200b}";
+const FILTER_ORIG_NON_PRINTING_CHARS: &str = "\u{200B}\u{202A}\u{202B}\u{202C}\
+\u{202D}\u{202E}\u{2066}\u{2067}\u{2068}\u{2069}";
 
 /// Group characters into lines (separated by newlines) and trim both sides of
 /// all lines by the set of the quoted characters. In addition to the listed
