@@ -11,7 +11,7 @@
 //! 6. `FILTER_PROCESSED_AFTER_LAST_PROCESSED_WAS_UNDERSCORE`
 //! 7. `FILTER_ORIG_AFTER_LAST_PROCESSED_WAS_WHITESPACE`
 //! 8. `FILTER_ORIG_NON_PRINTING_CHARS`
-//! 9. `TRIM_LINE`
+//! 9. `TRIM_LINE_CHARS`
 //! 10. `INSERT_LINE_SEPARATOR`
 //! 11. `TRIM_END_LINES`
 //!
@@ -75,8 +75,10 @@ const FILTER_ORIG_NON_PRINTING_CHARS: &str = "\u{200B}\u{202A}\u{202B}\u{202C}\
 
 /// Group characters into lines (separated by newlines) and trim both sides of
 /// all lines by the set of the quoted characters. In addition to the listed
-/// characters whitespace is trimmed too.
-const TRIM_LINE: &str = "_-.,;";
+/// characters whitespace is trimmed too. As the filter operates line by line,
+/// it guarantees, that none of the listed characters can appear at the
+/// beginning or the at end of the output string.
+pub const TRIM_LINE_CHARS: &str = "_-.,;";
 
 /// Insert the character below between lines.
 const INSERT_LINE_SEPARATOR: char = '-';
@@ -85,17 +87,18 @@ const INSERT_LINE_SEPARATOR: char = '-';
 const TRIM_END_LINES: char = INSERT_LINE_SEPARATOR;
 
 #[allow(dead_code)]
-/// A set of characters that is always replaced or filtered and will never appear in the output
-/// stream.
-/// Please note that additionally to the above : all `is_withespace()` characters are always
-/// replaced by space and all `is_control()` characters are always filtered.
+/// A set of characters that is always replaced or filtered and will never
+/// appear in the output stream. Please note that additionally to the above :
+/// all `is_whitespace()` characters are always replaced by space and all
+/// `is_control()` characters are always filtered.
 pub const ALWAYS_REPLACED_OR_FILTERED_CHARS: &str =
     concatcp!(REPLACE_ORIG_WITH_UNDERSCORE, REPLACE_ORIG_WITH_SPACE);
 
 #[allow(dead_code)]
-/// An unordered list of all characters that are potentially replaced under certain conditions.
-/// Please note that additionally to the above : all `is_withespace()` characters are always
-/// replaced by space and all `is_control()` characters are always filtered.
+/// An unordered list of all characters that are potentially replaced under
+/// certain conditions. Please note that additionally to the above : all
+/// `is_whitespace()` characters are always replaced by space and all
+/// `is_control()` characters are always filtered.
 pub const POTENTIALLY_REPLACED_CHARS: &str = concatcp!(
     REPLACE_ORIG_WITH_UNDERSCORE,
     REPLACE_ORIG_WITH_SPACE,
@@ -103,7 +106,7 @@ pub const POTENTIALLY_REPLACED_CHARS: &str = concatcp!(
     FILTER_PROCESSED_AFTER_LAST_PROCESSED_WAS_UNDERSCORE,
     FILTER_ORIG_AFTER_LAST_PROCESSED_WAS_WHITESPACE,
     FILTER_ORIG_NON_PRINTING_CHARS,
-    TRIM_LINE,
+    TRIM_LINE_CHARS,
     TRIM_END_LINES
 );
 
@@ -153,7 +156,7 @@ pub fn sanitize(s: &str) -> String {
                 .map(|(_, c)| c)
                 .collect::<String>()
                 // Trim whitespace and `_-.,;` at the beginning and the end of the line.
-                .trim_matches(|c: char| c.is_whitespace() || TRIM_LINE.find(c).is_some())
+                .trim_matches(|c: char| c.is_whitespace() || TRIM_LINE_CHARS.find(c).is_some())
                 .to_string();
             // Filter newline and insert line separator `-`.
             s.push(INSERT_LINE_SEPARATOR);
