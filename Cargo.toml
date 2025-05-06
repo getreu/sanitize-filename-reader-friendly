@@ -11,4 +11,4 @@ homepage = "https://gitlab.com/getreu/sanitize-filename-reader-friendly"
 description = "A filename sanitizer aiming to produce reader friendly filenames."
 
 [dependencies]
-const_format = "0.2.22"
+const_format = "0.2.34"
