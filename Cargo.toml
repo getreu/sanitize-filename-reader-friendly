@@ -2,7 +2,7 @@
 authors = ["Jens Getreu <getreu@web.de>"]
 name = "sanitize-filename-reader-friendly"
 version = "2.2.1"
-edition = "2021"
+edition = "2024"
 keywords = ["filename", "sanitizer"]
 license = "MIT/Apache-2.0"
 readme = "README.md"
